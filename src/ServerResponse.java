@@ -11,6 +11,8 @@ public class ServerResponse implements Runnable{
     private Socket clientSocket;
     private Server serverObject;
     private String name;
+    private String exitString = "!quit";
+
 
     /**
      * Constructor to create ServerResponse Object
@@ -41,12 +43,16 @@ public class ServerResponse implements Runnable{
         }
     }
 
+    public void quit(){
+
+    }
+
     // Reads data from the client we are connected to and broadcasts the message to all other clients connected to the server
     @Override
     public void run() {
         try {
             // Accept a connection from a client
-            System.out.println("Server accepted connection on: " + mySocket.getLocalPort() + " ; " + clientSocket.getPort());
+            System.out.println("Server accepted connection from new client");
 
             // Set up the ability to read the data from the client
             InputStreamReader clientCharStream = new InputStreamReader(clientSocket.getInputStream());
@@ -54,14 +60,43 @@ public class ServerResponse implements Runnable{
 
             // Tell client to enter name
             PrintWriter clientOut = new PrintWriter(clientSocket.getOutputStream(), true);
+            clientOut.println("Connected to server!");
             clientOut.println("Please enter your name!");
 
             // Read name to setup
-            name = clientIn.readLine();
+            try{
+                name = clientIn.readLine();
+                if (name.equals(exitString)){
+                    clientSocket.close();
+                    throw new IOException();
+                }
+            }
+            catch (IOException e){
+                //Client has disconnected
+                System.out.println("New client has disconnected!");
+                serverObject.removeClient(clientSocket);
+                return;
+            }
+
+            System.out.println(name+" has joined!");
 
             // Read from the client, and broadcast to all other clients
             while(true) {
-                String userInput = clientIn.readLine();
+                String userInput;
+                try{
+                    userInput = clientIn.readLine();
+                    if (userInput.equals(exitString)){
+                        clientSocket.close();
+                        throw new IOException();
+                    }
+                }
+                catch (IOException e){
+                    //Client has disconnected
+                    System.out.println(name+" has disconnected!");
+                    serverObject.removeClient(clientSocket);
+                    return;
+                }
+
                 broadcast(clientSocket, userInput);
             }
         } catch (IOException e) {

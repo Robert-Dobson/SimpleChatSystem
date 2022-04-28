@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="SimpleChatSystem:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/SimpleChatSystem_jar</output-path>
+    <root id="archive" name="SimpleChatSystem.jar">
+      <element id="module-output" name="SimpleChatSystem" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/jcraft/jsch/0.1.55/jsch-0.1.55.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

@@ -8,6 +8,7 @@ import java.net.Socket;
 public class ClientSender implements Runnable{
     // Socket connecting to server
     private Socket serverSocket;
+    private String exitString = "!quit";
 
     /**
      * Constructor creates a ClientSender Object
@@ -23,6 +24,10 @@ public class ClientSender implements Runnable{
     public void run() {
         // Set up the ability to read user input from keyboard
         BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
+
+        // Welcome the user
+        System.out.println("Welcome to the SimpleChatSystem!");
+        System.out.println("To exit please enter " + exitString);
 
         // Set up the ability to send the data to the server
         try {

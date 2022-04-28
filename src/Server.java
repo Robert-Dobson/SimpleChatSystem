@@ -12,12 +12,17 @@ public class Server {
      */
     public void go() {
         System.out.println("Server listening...");
+        boolean firstMessage = true;
 
         // Repeatedly look for new clients
         while(true){
             // Open with-resources a new serverSocket on the port
             try(ServerSocket mySocket = new ServerSocket(port)) {
-                System.out.println("Connected on port, "+ mySocket.getLocalPort());
+                if (firstMessage){
+                    System.out.println("Server is running on port, "+ mySocket.getLocalPort());
+                    firstMessage = false;
+                }
+
                 // Accept a connection from a client, returning the clientSocket
                 // This is a blocking call. This will wait here until a client connects
                 Socket clientSocket = mySocket.accept();
@@ -35,6 +40,10 @@ public class Server {
             }
         }
 
+    }
+
+    public void removeClient(Socket client){
+        clientSockets.remove(client);
     }
 
     /**

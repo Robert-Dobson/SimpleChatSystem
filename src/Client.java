@@ -9,6 +9,10 @@ public class Client {
     private String address;
     private int port;
 
+    private JSch sshManager;
+    Session session = null;
+
+
     /**
      * Constructor to create Client Object
      * @param add   the address of the server we're going to connect to
@@ -29,7 +33,7 @@ public class Client {
         try(Socket serverSocket = new Socket(address, port)) {
             // Create new ClientSender and ClientListener objects to send messages to server and receive messages
             ClientSender sender = new ClientSender(serverSocket);
-            ClientListener listener = new ClientListener(serverSocket);
+            ClientListener listener = new ClientListener(serverSocket, this);
 
             // Create new thread objects passing ClientSender and ClientListener so they can be run in new threads
             // We're using multithreading, so we can send and receive messages at the same time
@@ -55,19 +59,44 @@ public class Client {
 
     public void PortForward(){
         // Use JSch to connect to linux3.bath.ac.uk with ssh
-        JSch sshManager = new JSch();
-        Session session = null;
+        sshManager = new JSch();
         try {
-            sshManager.addIdentity("Data/id_rsa");
-            sshManager.setKnownHosts("Data/known_hosts");
+            sshManager.addIdentity(System.getProperty("user.dir") + "/Data/id_rsa");
+            sshManager.setKnownHosts(System.getProperty("user.dir") + "/Data/known_hosts");
             session = sshManager.getSession("rhdd20", "linux3.bath.ac.uk", 22);
             session.connect();
+
             // Set up port forwarding so any data we send to localhost port is redirected to the linux server
-            session.setPortForwardingL(this.port, this.address, 34751);
-        } catch (JSchException ignored){
-            // DO nothing, this is because setPortForwardingL will fail when multiple instances of Client is ran
+            boolean connected = false;
+            while (connected != true){
+                try{
+                    session.setPortForwardingL(this.port, this.address, 34752);
+                    connected = true;
+                }
+                catch (JSchException e){
+                    this.port++;
+                }
+            }
+
+
+        } catch (JSchException e){
+            e.printStackTrace();
         }
 
+    }
+
+    public void Disconnect(){
+        // Disconnect port forwarding
+        try{
+            session.delPortForwardingL(port);
+            session.disconnect();
+        }
+        catch (JSchException e){
+            e.printStackTrace();
+        }
+
+        // Exit, commented out to avoid intellij issues
+        System.exit(0);
     }
 
     public static void main(String[] args) {
