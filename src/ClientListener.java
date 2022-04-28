@@ -25,7 +25,7 @@ public class ClientListener implements Runnable{
             while(true) {
                 // Read the message from the server and output it
                 String serverResponse = serverIn.readLine();
-                System.out.println("Server responded with: " + serverResponse);
+                System.out.println(serverResponse);
             }
 
         } catch (IOException e) {

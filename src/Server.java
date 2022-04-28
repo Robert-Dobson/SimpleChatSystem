@@ -4,7 +4,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 public class Server {
-    private int port = 14002; // Port the server is set-up on
+    private int port = 34751; // Port the server is set-up on
     private ArrayList<Socket> clientSockets = new ArrayList<Socket>(); // ArrayList of every client connected to the server
 
     /**
@@ -17,6 +17,7 @@ public class Server {
         while(true){
             // Open with-resources a new serverSocket on the port
             try(ServerSocket mySocket = new ServerSocket(port)) {
+                System.out.println("Connected on port, "+ mySocket.getLocalPort());
                 // Accept a connection from a client, returning the clientSocket
                 // This is a blocking call. This will wait here until a client connects
                 Socket clientSocket = mySocket.accept();

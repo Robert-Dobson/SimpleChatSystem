@@ -31,7 +31,6 @@ public class ClientSender implements Runnable{
             // Always allow user input
             while(true) {
                 // Get user input and send to server
-                System.out.println("Please enter some text");
                 String userInputString = userInput.readLine();
                 serverOut.println(userInputString);
 

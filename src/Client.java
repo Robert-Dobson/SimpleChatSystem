@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import com.jcraft.jsch.*;
+
 public class Client {
     // Address and port of server we're connecting to
     private String address;
@@ -51,9 +53,31 @@ public class Client {
         }
     }
 
+    public void PortForward(){
+        // Use JSch to connect to linux3.bath.ac.uk with ssh
+        JSch sshManager = new JSch();
+        Session session = null;
+        try {
+            sshManager.addIdentity("Data/id_rsa");
+            sshManager.setKnownHosts("Data/known_hosts");
+            session = sshManager.getSession("rhdd20", "linux3.bath.ac.uk", 22);
+            session.connect();
+            // Set up port forwarding so any data we send to localhost port is redirected to the linux server
+            session.setPortForwardingL(this.port, this.address, 34751);
+        } catch (JSchException ignored){
+            // DO nothing, this is because setPortForwardingL will fail when multiple instances of Client is ran
+        }
+
+    }
+
     public static void main(String[] args) {
         // Create a new client object to connect to localhost:14002
         Client myClient = new Client("localhost", 14002);
+
+        // Port forward to linux bath server
+        myClient.PortForward();
+
+        // Start client
         myClient.go();
     }
 }

@@ -10,6 +10,7 @@ public class ServerResponse implements Runnable{
     private ServerSocket mySocket;
     private Socket clientSocket;
     private Server serverObject;
+    private String name;
 
     /**
      * Constructor to create ServerResponse Object
@@ -35,7 +36,7 @@ public class ServerResponse implements Runnable{
             if (socket != currentSocket){
                 // Set up the ability to send the data to each other client
                 PrintWriter clientOut = new PrintWriter(socket.getOutputStream(), true);
-                clientOut.println(message);
+                clientOut.println(name + ":" + message);
             }
         }
     }
@@ -51,7 +52,14 @@ public class ServerResponse implements Runnable{
             InputStreamReader clientCharStream = new InputStreamReader(clientSocket.getInputStream());
             BufferedReader clientIn = new BufferedReader(clientCharStream);
 
-            // Read from the client, and send the message back
+            // Tell client to enter name
+            PrintWriter clientOut = new PrintWriter(clientSocket.getOutputStream(), true);
+            clientOut.println("Please enter your name!");
+
+            // Read name to setup
+            name = clientIn.readLine();
+
+            // Read from the client, and broadcast to all other clients
             while(true) {
                 String userInput = clientIn.readLine();
                 broadcast(clientSocket, userInput);
