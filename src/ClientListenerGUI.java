@@ -1,25 +1,27 @@
-import javax.imageio.IIOException;
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.util.List;
 
-public class ClientListener implements Runnable{
+public class ClientListenerGUI extends SwingWorker {
     private Socket serverSocket;
-    private Client clientObject;
+    private ClientGUI clientObject;
 
     /**
      * Constructor to create ClientListener object
      * @param serverSocket
+     * @param clientObject
      */
-    public ClientListener(Socket serverSocket, Client clientObject){
+    public ClientListenerGUI(Socket serverSocket, ClientGUI clientObject){
         this.serverSocket = serverSocket;
         this.clientObject = clientObject;
     }
 
     // Reads any data sent from the server and outputs it
     @Override
-    public void run() {
+    protected String doInBackground(){
         // Set up the ability to read the data from the server
         try {
             BufferedReader serverIn = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
@@ -32,7 +34,7 @@ public class ClientListener implements Runnable{
                     if (serverResponse == null){
                         throw new IOException();
                     }
-                    System.out.println(serverResponse);
+                    publish(serverResponse);
                 } catch (IOException e1) {
                     System.out.println("You've now disconnected!");
                     clientObject.Disconnect();
@@ -42,5 +44,17 @@ public class ClientListener implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return null;
+    }
+
+    @Override
+    protected void process(List text) {
+        JTextArea mainText = clientObject.getMainText();
+        StringBuilder currentText = new StringBuilder(mainText.getText());
+        for (Object line:text){
+            String lineText = line.toString();
+            currentText.append(lineText);
+        }
+        mainText.setText(currentText.toString());
     }
 }
