@@ -1,3 +1,4 @@
+import com.formdev.flatlaf.FlatLightLaf;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
@@ -6,6 +7,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -27,6 +30,9 @@ public class ClientGUI implements ActionListener {
     private JTextArea mainText;
     private JTextField userEntry;
 
+    // Swing Worker Object
+    private ClientListenerGUI listener;
+
     /**
      * Constructor to create Client Object
      * @param add   the address of the server we're going to connect to
@@ -41,14 +47,25 @@ public class ClientGUI implements ActionListener {
      * Draw UI for simple chat system
      */
     public void draw(){
+
+        // Set look and feel to FlatLaf (library)
+        FlatLightLaf.setup();
+
         // Create our "container", main frame
         mainFrame = new JFrame();
         mainFrame.setTitle("Simple Chat System");
         mainFrame.setSize(width, height);
         mainFrame.setLayout(new BorderLayout());
 
+        // Setup exit procedure to safely exit the program
+        mainFrame.addWindowListener(new WindowAdapter(){
+            public void windowClosing(WindowEvent we){
+                Disconnect();
+            }
+        });
+
         // Add maintext, where messages are shown
-        mainText = new JTextArea("Test");
+        mainText = new JTextArea("");
         mainText.setSize(width, height);
         mainText.setEditable(false);
         mainText.setLineWrap(true);
@@ -73,6 +90,8 @@ public class ClientGUI implements ActionListener {
         // Add bottom panel to main frame
         mainFrame.add(bottomPanel, BorderLayout.PAGE_END);
 
+        mainFrame.getRootPane().setDefaultButton(sendButton);
+
         // Set frame to visible
         mainFrame.setVisible(true);
     }
@@ -88,11 +107,12 @@ public class ClientGUI implements ActionListener {
             // Create new ClientSender and ClientListener objects to send messages to server and receive messages
             this.serverSocket = serverSocket;
             // ClientSender sender = new ClientSender(serverSocket);
-            ClientListenerGUI listener = new ClientListenerGUI(serverSocket, this);
+            listener = new ClientListenerGUI(serverSocket, this);
             listener.execute();
             while (true){
                 ;
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -136,17 +156,28 @@ public class ClientGUI implements ActionListener {
     public void Disconnect(){
         // Disconnect port forwarding
         try{
-            session.delPortForwardingL(port);
+            // Inform server of disconnect
+            PrintWriter serverOut = new PrintWriter(serverSocket.getOutputStream(), true);
+            serverOut.println("!quit");
+
+            // Cancel Listener
+            listener.cancel(true);
+
+            // Disconnect session
             session.disconnect();
+            session.delPortForwardingL(port);
         }
-        catch (JSchException e){
-            e.printStackTrace();
+        catch (JSchException | IOException e){
+            // Session already deleted
+            ;
         }
+
 
         // Exit, commented out to avoid intellij issues
         System.exit(0);
     }
 
+    // Create client and sets up connection to server
     public static void main(String[] args) {
         // Create a new client object to connect to localhost:14002
         ClientGUI myClient = new ClientGUI("localhost", 14002);
@@ -162,6 +193,7 @@ public class ClientGUI implements ActionListener {
 
     }
 
+    // Sends any message in the entry box
     @Override
     public void actionPerformed(ActionEvent e) {
         // Called when send button is pressed

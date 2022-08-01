@@ -36,7 +36,7 @@ public class ClientListenerGUI extends SwingWorker {
                     }
                     publish(serverResponse);
                 } catch (IOException e1) {
-                    System.out.println("You've now disconnected!");
+                    System.out.println("Disconnected!");
                     clientObject.Disconnect();
                 }
             }
@@ -47,12 +47,13 @@ public class ClientListenerGUI extends SwingWorker {
         return null;
     }
 
+    // Appends any received messages to the text area on the GUI
     @Override
     protected void process(List text) {
         JTextArea mainText = clientObject.getMainText();
         StringBuilder currentText = new StringBuilder(mainText.getText());
         for (Object line:text){
-            String lineText = line.toString();
+            String lineText = line.toString() + System.lineSeparator();
             currentText.append(lineText);
         }
         mainText.setText(currentText.toString());
