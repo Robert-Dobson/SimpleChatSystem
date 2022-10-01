@@ -1,17 +1,22 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
 public class ServerResponse implements Runnable{
+    // Socket attributes
     private ServerSocket mySocket;
     private Socket clientSocket;
     private Server serverObject;
+
+    // Streams to and from client
+    ObjectInputStream clientIn;
+    ObjectOutputStream clientOut;
+
+
+    // Client Details
     private String name;
-    private String exitString = "!quit";
+    private int userID;
 
 
     /**
@@ -27,95 +32,82 @@ public class ServerResponse implements Runnable{
     }
 
     /**
-     * Sends the message to all connected clients and a modified message to the passed client
-     * @param currentSocket the socket of the client we don't want to send a message to
-     * @param message   the message we want to send to the clients
-     * @throws IOException
+     * Reads any messages from the client and executes the appropriate response method
      */
-    public void broadcast(Socket currentSocket, String message, boolean isServer) throws IOException {
-        ArrayList<Socket> sockets = serverObject.getClientSockets();
-        for (Socket socket: sockets){
-            if (isServer){
-                // Sends data without appending name
-                PrintWriter clientOut = new PrintWriter(socket.getOutputStream(), true);
-                clientOut.println(message);
-            }
-            else{
-                if (socket != currentSocket){
-                    // Set up the ability to send the data to each other client
-                    PrintWriter clientOut = new PrintWriter(socket.getOutputStream(), true);
-                    clientOut.println(name + ": " + message);
-                }
-                else{
-                    // Send message to client sending the message indicating its from them
-                    PrintWriter clientOut = new PrintWriter(socket.getOutputStream(), true);
-                    clientOut.println(name + " (You): " + message);
-                }
-            }
-        }
-    }
-
-    // Reads data from the client we are connected to and broadcasts the message to all other clients connected to the server
     @Override
     public void run() {
         try {
             // Accept a connection from a client
             System.out.println("Server accepted connection from new client");
 
-            // Set up the ability to read the data from the client
-            InputStreamReader clientCharStream = new InputStreamReader(clientSocket.getInputStream());
-            BufferedReader clientIn = new BufferedReader(clientCharStream);
-
-            // Tell client to enter name
-            PrintWriter clientOut = new PrintWriter(clientSocket.getOutputStream(), true);
-            clientOut.println("SERVER: Connected to server!");
-            clientOut.println("SERVER: Please enter your name!");
-
-            // Read name to setup
+            // Set up the ability to receive and send messages to the client
+            clientIn = new ObjectInputStream(clientSocket.getInputStream());
+            clientOut = new ObjectOutputStream(clientSocket.getOutputStream());
             try{
-                name = clientIn.readLine();
-                if (name.equals(exitString)){
-                    clientSocket.close();
-                    throw new IOException();
-                }
-                else{
-                    clientOut.println("SERVER: Welcome "+name);
-                }
-            }
-            catch (IOException e){
-                //Client has disconnected
-                System.out.println("New client has disconnected!");
-                serverObject.removeClient(clientSocket);
-                return;
-            }
+                // Recieve message from client, this is a blocking call
+                Message message = (Message) clientIn.readObject();
 
-            // Log and broadcast person has joined
-            System.out.println(name+" has joined!");
-            broadcast(clientSocket, "SERVER: "+ name + " has joined!", true);
-
-            // Read from the client, and broadcast to all other clients
-            while(true) {
-                String userInput;
-                try{
-                    userInput = clientIn.readLine();
-                    if (userInput.equals(exitString)){
-                        clientSocket.close();
-                        throw new IOException();
+                if (message != null){
+                    // Decide how to respond to message based off the special code
+                    int specialCode = message.specialCode;
+                    switch(specialCode){
+                        // Login Request Received
+                        case 10:
+                            LoginResponse(message);
                     }
                 }
-                catch (IOException e){
-                    //Client has disconnected
-                    System.out.println(name+" has disconnected!");
-                    serverObject.removeClient(clientSocket);
-                    broadcast(null, "SERVER: "+ name+ " has disconnected!", true);
-                    return;
-                }
-
-                // Broadcast message sent to all other users
-                broadcast(clientSocket, userInput, false);
+            } catch (IOException | ClassNotFoundException e1) {
+                e1.printStackTrace();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Send a message back to the client
+     * @param requestReply  message to send to client
+     */
+    public void sendMessage(Message requestReply){
+        try {
+            // Send message to the client using the output stream
+            clientOut.writeObject(requestReply);
+            clientOut.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Registers the login attempt and sends back a unique user id
+     * @param message   message from client containing login attempt info
+     */
+    public void LoginResponse(Message message){
+        // Get unique user id
+        userID = serverObject.getUserID();
+        String messageContents = Integer.toString(userID);
+
+        // Create and send response message to user
+        Message requestReply = new Message(11, messageContents);
+        sendMessage(requestReply);
+
+        // Add current user to users
+        serverObject.addUser(userID, name);
+
+        // Send list of connected users to Client
+        sendUsers();
+
+        // Add to log
+        System.out.println("New User ID "+ this.userID  + "(" + this.name + ")");
+    }
+
+    /**
+     * Send list of currently online users to the client
+     */
+    public void sendUsers(){
+        // Get array list of users and send
+        ArrayList<User> users = serverObject.getUsers();
+        Message requestReply = new Message(users);
+        sendMessage(requestReply);
     }
 }
