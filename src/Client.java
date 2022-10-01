@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 
 public class Client{
@@ -25,6 +26,12 @@ public class Client{
     // Other Users
     ArrayList<User> users;
 
+    // Client Listener thread
+    Thread listeningThread;
+
+    // UI object
+    ChatSessionView UI;
+
     /**
      * Constructor to create Client Object
      *
@@ -39,7 +46,7 @@ public class Client{
         this.PortForward();
 
         // Draw UI
-        ChatSessionView UI = new ChatSessionView(this);
+        UI = new ChatSessionView(this);
         UI.draw();
 
         // Connect to Server and start listening for responses
@@ -79,11 +86,12 @@ public class Client{
     }
 
     /**
-     * Update list of other users online
+     * Update list of other users online both in Client and in the GUI
      * @param newUsers  List of users currently online
      */
     public void updateUsers(ArrayList<User> newUsers){
         this.users = newUsers;
+        UI.updateOnlineUsers(newUsers);
     }
 
     /**
@@ -96,6 +104,7 @@ public class Client{
             ObjectOutputStream outStream = new ObjectOutputStream(serverSocket.getOutputStream());
             outStream.writeObject(message);
             outStream.flush();
+            System.out.println(message.specialCode);
         }
         catch (IOException e){
             e.printStackTrace();
@@ -109,10 +118,9 @@ public class Client{
         // Try-with resources: open a socket to connect to server
         try {
             // Create new ClientListener object to receive messages from the server
-            System.out.println("Hello");
             this.serverSocket = new Socket(address, port);
             ClientListener listener = new ClientListener(serverSocket, this);
-            Thread listeningThread = new Thread(listener);
+            listeningThread = new Thread(listener);
             listeningThread.start();
         } catch (IOException e) {
             e.printStackTrace();
@@ -154,16 +162,21 @@ public class Client{
     public void Disconnect() {
         // Disconnect port forwarding
         try {
-            // Inform server of disconnect
-            Message disconnectRequest = new Message(2, Integer.toString(this.userID));
-            sendMessage(disconnectRequest);
+            // If socket isn't already closed
+            if (serverSocket.isConnected()){
+                // Inform server of disconnect
+                Message disconnectRequest = new Message(2, Integer.toString(this.userID));
+                sendMessage(disconnectRequest);
 
-            // Disconnect socket
-            serverSocket.close();
+                // Disconnect socket
+                serverSocket.close();
 
-            // Disconnect session
-            session.disconnect();
-            session.delPortForwardingL(port);
+                // Disconnect session
+                session.disconnect();
+                session.delPortForwardingL(port);
+            }
+            System.out.println("Disconnect"); //Remove
+
         } catch (JSchException | IOException e) {
             // Session already deleted, don't need to do anything
             ;

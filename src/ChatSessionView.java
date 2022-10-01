@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 
 public class ChatSessionView implements ActionListener {
     // Main GUI Attributes
@@ -16,6 +17,7 @@ public class ChatSessionView implements ActionListener {
     private JTextArea mainText;
     private JTextField userEntry;
     private JButton sendButton;
+    private JComboBox<User> selectUser;
 
     // Login Diag Attributes
     private JDialog diagFrame;
@@ -47,8 +49,23 @@ public class ChatSessionView implements ActionListener {
         mainFrame.addWindowListener(new WindowAdapter(){
             public void windowClosing(WindowEvent we){
                 currentClient.Disconnect();
+
             }
         });
+
+        // Add top panel
+        JPanel topPanel = new JPanel();
+        topPanel.setSize(width, 75);
+        topPanel.setLayout(new FlowLayout());
+
+        // Add label and combo box for selecting user
+        topPanel.add(new JLabel("Select User to Message:"));
+        selectUser = new JComboBox<User>();
+        selectUser.addActionListener(this);
+        topPanel.add(selectUser);
+
+        // Add top panel to main frame
+        mainFrame.add(topPanel, BorderLayout.PAGE_START);
 
         // Add main text, where messages are shown
         mainText = new JTextArea("");
@@ -109,6 +126,19 @@ public class ChatSessionView implements ActionListener {
     }
 
     /**
+     * Updates the drop down menu with all online users
+     * @param users
+     */
+    public void updateOnlineUsers(ArrayList<User> users){
+        selectUser.removeAllItems();
+        if (users != null){
+            for (User user: users){
+                selectUser.addItem(user);
+            }
+        }
+    }
+
+    /**
      * Responds to any pressed buttons.
      * If send button - send message to requested user
      * If login button - send login request to server
@@ -129,7 +159,5 @@ public class ChatSessionView implements ActionListener {
             currentClient.login(name);
             diagFrame.setVisible(false);
         }
-
     }
-
 }

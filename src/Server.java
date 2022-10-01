@@ -66,10 +66,10 @@ public class Server {
     /**
      * Add a new user to online users
      * @param uniqueID  userID of the user
-     * @param Name  name of the user
+     * @param name  name of the user
      */
-    public void addUser(int uniqueID, String Name){
-        onlineUsers.add(new User(uniqueID, Name));
+    public void addUser(int uniqueID, String name){
+        onlineUsers.add(new User(uniqueID, name));
     }
 
     /**
@@ -77,6 +77,28 @@ public class Server {
      */
     public ArrayList<User> getUsers(){
         return onlineUsers;
+    }
+
+    /**
+     * Remove user from online users and their socket
+     * @param uniqueID userID of the user
+     * @param clientSocket socket of the user we're removing
+     */
+    public void removeUser(int uniqueID, Socket clientSocket){
+        // Remove user (based off unique ID) from online users list
+        String name = "Unknown User";
+        for (User user: this.onlineUsers){
+            if (user.uniqueID == uniqueID){
+                name = user.name;
+                this.onlineUsers.remove(user);
+                break;
+            }
+        }
+
+        // Remove client socket from list
+        this.clientSockets.remove(clientSocket);
+        
+        System.out.println("User ID "+ Integer.toString(uniqueID) + " (" + name +") has disconnected");
     }
 
     public static void main(String[] args) {

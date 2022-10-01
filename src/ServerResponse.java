@@ -8,11 +8,11 @@ public class ServerResponse implements Runnable{
     private ServerSocket mySocket;
     private Socket clientSocket;
     private Server serverObject;
+    private Boolean socketActive = true;
 
     // Streams to and from client
     ObjectInputStream clientIn;
     ObjectOutputStream clientOut;
-
 
     // Client Details
     private String name;
@@ -36,31 +36,42 @@ public class ServerResponse implements Runnable{
      */
     @Override
     public void run() {
-        try {
-            // Accept a connection from a client
-            System.out.println("Server accepted connection from new client");
+        // Accept a connection from a client
+        System.out.println("Server accepted connection from new client");
+        while (socketActive){
+            try {
+                // Set up the ability to receive and send messages to the client
+                clientIn = new ObjectInputStream(clientSocket.getInputStream());
+                clientOut = new ObjectOutputStream(clientSocket.getOutputStream());
+                try{
+                    // Recieve message from client, this is a blocking call
+                    Message message = (Message) clientIn.readObject();
 
-            // Set up the ability to receive and send messages to the client
-            clientIn = new ObjectInputStream(clientSocket.getInputStream());
-            clientOut = new ObjectOutputStream(clientSocket.getOutputStream());
-            try{
-                // Recieve message from client, this is a blocking call
-                Message message = (Message) clientIn.readObject();
+                    if (message != null){
+                        // Decide how to respond to message based off the special code
+                        int specialCode = message.specialCode;
+                        switch(specialCode){
+                            // Disconnect Request Received
+                            case 2:
+                                // Send request recieved message to client
+                                this.socketActive = false;
+                                serverObject.removeUser(this.userID, this.clientSocket);
+                                break;
 
-                if (message != null){
-                    // Decide how to respond to message based off the special code
-                    int specialCode = message.specialCode;
-                    switch(specialCode){
-                        // Login Request Received
-                        case 10:
-                            LoginResponse(message);
+                            // Login Request Received
+                            case 10:
+                                LoginResponse(message);
+                                break;
+                        }
                     }
+                } catch (ClassNotFoundException e1) {
+                    e1.printStackTrace();
                 }
-            } catch (IOException | ClassNotFoundException e1) {
-                e1.printStackTrace();
+            } catch (IOException e) {
+                // The socket is closed, remove user
+                this.socketActive = false;
+                serverObject.removeUser(this.userID, this.clientSocket);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -83,6 +94,9 @@ public class ServerResponse implements Runnable{
      * @param message   message from client containing login attempt info
      */
     public void LoginResponse(Message message){
+        // Add username
+        this.name = message.message;
+
         // Get unique user id
         userID = serverObject.getUserID();
         String messageContents = Integer.toString(userID);
@@ -98,7 +112,7 @@ public class ServerResponse implements Runnable{
         sendUsers();
 
         // Add to log
-        System.out.println("New User ID "+ this.userID  + "(" + this.name + ")");
+        System.out.println("New User (ID: "+ this.userID  + ", Name:" + this.name + ")");
     }
 
     /**

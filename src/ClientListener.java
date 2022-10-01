@@ -30,7 +30,7 @@ public class ClientListener implements Runnable{
             ObjectInputStream in = new ObjectInputStream(serverSocket.getInputStream());
 
             // Loops, ensuring we can always receive messages from server
-            while(true) {
+            while(!serverSocket.isClosed()) {
                 // Read the message from the server and processes it
                 try {
                     Message serverMessage = (Message)in.readObject();
@@ -49,11 +49,8 @@ public class ClientListener implements Runnable{
                                 clientObject.updateUsers(serverMessage.users);
                         }
                     }
-                } catch (IOException e1) {
-                    System.out.println("Disconnected!");
-                    clientObject.Disconnect();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                } catch (IOException | ClassNotFoundException e1) {
+                    ;
                 }
             }
         } catch (IOException e) {

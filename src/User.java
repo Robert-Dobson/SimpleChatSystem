@@ -14,4 +14,13 @@ public class User implements Serializable {
         this.uniqueID = uniqueID;
         this.name = name;
     }
+
+    /**
+     * The toString of a user just shows its name.
+     * @return
+     */
+    @Override
+    public String toString() {
+        return name;
+    }
 }
