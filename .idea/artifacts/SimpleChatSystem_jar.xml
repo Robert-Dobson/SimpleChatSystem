@@ -4,6 +4,7 @@
     <root id="archive" name="SimpleChatSystem.jar">
       <element id="module-output" name="SimpleChatSystem" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/jcraft/jsch/0.1.55/jsch-0.1.55.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/formdev/flatlaf/2.3/flatlaf-2.3.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

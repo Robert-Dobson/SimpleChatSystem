@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager" inherit-compiler-output="true">
+  <component name="NewModuleRootManager">
+    <output url="file://$MODULE_DIR$/out/production/SimpleChatSystem" />
+    <output-test url="file://$MODULE_DIR$/out/test/SimpleChatSystem" />
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
@@ -8,6 +10,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="jcraft.jsch" level="project" />
-    <orderEntry type="library" name="formdev.flatlaf" level="project" />
+    <orderEntry type="library" exported="" name="formdev.flatlaf" level="project" />
   </component>
 </module>

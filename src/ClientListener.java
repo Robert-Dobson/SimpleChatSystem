@@ -1,10 +1,6 @@
-import javax.swing.*;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.net.Socket;
-import java.util.List;
 
 public class ClientListener implements Runnable{
     private Socket serverSocket;
@@ -41,12 +37,19 @@ public class ClientListener implements Runnable{
                         // Decides how to respond to message based off special code
                         int specialCode = serverMessage.specialCode;
                         switch(specialCode){
+                            // Direct message received
+                            case 0:
+                                clientObject.messageReceived(serverMessage, true);
+                                break;
+
                             // Login Request Accepted/Rejected
                             case 11:
                                 clientObject.loginRecieved(serverMessage.message);
+                                break;
                             // Refresh Users
                             case 20:
                                 clientObject.updateUsers(serverMessage.users);
+                                break;
                         }
                     }
                 } catch (IOException | ClassNotFoundException e1) {

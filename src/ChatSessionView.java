@@ -7,7 +7,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 public class ChatSessionView implements ActionListener {
     // Main GUI Attributes
@@ -127,7 +129,7 @@ public class ChatSessionView implements ActionListener {
 
     /**
      * Updates the drop down menu with all online users
-     * @param users
+     * @param users list of currently online users
      */
     public void updateOnlineUsers(ArrayList<User> users){
         selectUser.removeAllItems();
@@ -139,6 +141,69 @@ public class ChatSessionView implements ActionListener {
     }
 
     /**
+     * Update the main text body with messages held in the given user's file
+     * @param userID the userID of the friend's file to load
+     */
+    public void loadFile(int userID){
+        // Load the file in a swing worker thread to avoid GUI hangups
+        SwingWorker<String, String> loadFile = new SwingWorker<String, String>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                // Create file if the file doesn't exist
+                File messageFile = new File(System.getProperty("user.dir") + "/Data/" + currentClient.clientDetails.uniqueID + "-" + userID + "messages.txt");
+                if (!messageFile.exists()) {
+                    try {
+                        messageFile.createNewFile();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // Read file contents
+                StringBuilder text = new StringBuilder("");
+                try (BufferedReader br = new BufferedReader(new FileReader(messageFile))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line).append("\n");
+                    }
+                }
+                return text.toString();
+            }
+
+            @Override
+            protected void done() {
+                super.done();
+                // Clear main text and replace with text we read in
+                String text = "";
+                try {
+                    text = get();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+                mainText.setText(text);
+            }
+        };
+        loadFile.execute();
+    }
+
+    /**
+     * Refreshes main text with new message if user that needs updating is selected
+     * @param userID
+     */
+    public void refreshText(int userID){
+        // Currently selected user
+        User selectedUser = (User) this.selectUser.getSelectedItem();
+
+        // If currently selected user is user to update reload file
+        if (selectedUser !=null && userID == selectedUser.uniqueID){
+            loadFile(userID);
+        }
+
+    }
+
+    /**
      * Responds to any pressed buttons.
      * If send button - send message to requested user
      * If login button - send login request to server
@@ -146,18 +211,30 @@ public class ChatSessionView implements ActionListener {
      */
     @Override
     public void actionPerformed(ActionEvent e) {
-        // Called when send button is pressed
-        // Get users input
+        // Called when send button is pressed, Get users input
         if (e.getSource().equals(sendButton)){
+            // Get text and user to send to
             String userMessage = userEntry.getText();
-            // TO-DO: Mechanism for sending messages
-            // Clear user entry
-            userEntry.setText("");
+            User selectedUser = (User) selectUser.getSelectedItem();
+            if (userMessage != null && !userMessage.equals("") && selectedUser != null){
+                // Send typed message to selected user
+                currentClient.sendMessageToUser(userMessage, selectedUser);
+                // Clear user entry
+                userEntry.setText("");
+            }
         }
+        // Called when login button is pressed, log in
         else if (e.getSource().equals(loginButton)){
             String name = usernameEntry.getText();
             currentClient.login(name);
             diagFrame.setVisible(false);
+        }
+        // Called when users combo box is changed, change messages
+        else if (e.getSource().equals(selectUser)){
+            User user = (User) selectUser.getSelectedItem();
+            if (user != null){
+                refreshText(user.uniqueID);
+            }
         }
     }
 }

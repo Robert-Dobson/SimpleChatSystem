@@ -3,8 +3,8 @@ import java.util.ArrayList;
 
 // Must be serializable so objects of this type can be sent over a socket
 public class Message implements Serializable{
-    int fromUser;
-    int toUser;
+    User fromUser;
+    User toUser;
     /*
         There are several special codes which indicates to client and/or server what the purpose of the message is
         See below a list of current codes:
@@ -25,7 +25,7 @@ public class Message implements Serializable{
      * @param fromUser user the message is sent from
      * @param message message to send
      */
-    public Message(int fromUser, int toUser, String message){
+    public Message(User fromUser, User toUser, String message){
         this.specialCode = 0;
         this.fromUser = fromUser;
         this.toUser = toUser;

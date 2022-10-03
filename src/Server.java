@@ -56,11 +56,11 @@ public class Server {
 
     /**
      * Add a new user to online users and store socket info
-     * @param uniqueID  userID of the user
-     * @param name  name of the user
+     * @param user  user details
+     * @param clientSocketInfo  socket information for client
      */
-    public void addUser(int uniqueID, String name, SocketInfo clientSocketInfo){
-        onlineUsers.add(new User(uniqueID, name));
+    public void addUser(User user, SocketInfo clientSocketInfo){
+        onlineUsers.add(user);
         clientSockets.add(clientSocketInfo);
     }
 

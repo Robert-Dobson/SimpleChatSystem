@@ -2,11 +2,8 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.ArrayList;
 
 public class Client{
@@ -14,12 +11,14 @@ public class Client{
     private String address;
     private int port;
     Socket serverSocket;
+    private ObjectOutputStream outStream;
 
     // SSH attributes
     private JSch sshManager;
     Session session = null;
 
     // Client Details
+    User clientDetails;
     String username;
     int userID;
 
@@ -83,6 +82,52 @@ public class Client{
                 ex.printStackTrace();
             }
         }
+
+        // Create user from id and username
+        clientDetails = new User(userID, username);
+    }
+
+    /**
+     * Add message received to corresponding the text file and if currently selected user request GUI to refresh page
+     * @param message   message recieved from another user (contains text and user info)
+     */
+    public void messageReceived(Message message, boolean recieved){
+        // Create a new anonymous inner thread to read the message and write to file (to avoid hang ups)
+        Thread response = new Thread(){
+            public void run(){
+                // Get file for user we received the message from (or create one if it doesn't exist)
+                User fromUser = message.fromUser;
+                File userFile = new File(System.getProperty("user.dir") + "/Data/" + clientDetails.uniqueID + "-" + fromUser.uniqueID + "messages.txt");
+                if (!userFile.exists()){
+                    try {
+                        userFile.createNewFile();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // Add new message to the file
+                try (BufferedWriter bw = new BufferedWriter(new FileWriter(userFile, true))){
+                    // Decide whether the message is from us or the sender
+                    if (recieved){
+                        bw.write(fromUser.name + ": ");
+                    }
+                    else{
+                        bw.write("You: ");
+                    }
+
+                    bw.write(message.message);
+                    bw.newLine();
+                }
+                catch(IOException ex){
+                    ex.printStackTrace();
+                }
+
+                // Ask chat session view to refresh
+                UI.refreshText(fromUser.uniqueID);
+            }
+        };
+        response.start();
     }
 
     /**
@@ -100,15 +145,31 @@ public class Client{
      */
     public void sendMessage(Message message){
         try{
-            // Open an output object stream to the server, add the message to the stream, then send it
-            ObjectOutputStream outStream = new ObjectOutputStream(serverSocket.getOutputStream());
+            // Send message to the server using the output object stream
             outStream.writeObject(message);
             outStream.flush();
-            System.out.println(message.specialCode);
         }
         catch (IOException e){
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Send a message to specified userID containing given text
+     * @param text  text to send to the user
+     * @param toUser  user to send the message to
+     */
+    public void sendMessageToUser(String text, User toUser){
+        // Create new message to send to recipient via the server
+        Message message = new Message(this.clientDetails, toUser, text);
+        sendMessage(message);
+
+        // Write message to local file and refresh UI
+        // To do this we will manipulate the message slightly to pretend the message is from the receiver to ensure
+        // the message is written to the correct file. And set a flag to change the name to "You:" in the text
+        Message editedMessage = new Message(toUser, this.clientDetails, text);
+        messageReceived(editedMessage, false);
+
     }
 
     /**
@@ -120,8 +181,9 @@ public class Client{
             // Create new ClientListener object to receive messages from the server
             this.serverSocket = new Socket(address, port);
             ClientListener listener = new ClientListener(serverSocket, this);
-            listeningThread = new Thread(listener);
+            this.listeningThread = new Thread(listener);
             listeningThread.start();
+            this.outStream = new ObjectOutputStream(serverSocket.getOutputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }

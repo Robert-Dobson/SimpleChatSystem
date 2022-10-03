@@ -18,6 +18,7 @@ public class ServerResponse implements Runnable{
     // Client Details
     private String name;
     private int userID;
+    private User userDetails;
 
 
     /**
@@ -39,48 +40,58 @@ public class ServerResponse implements Runnable{
     public void run() {
         // Accept a connection from a client
         System.out.println("Server accepted connection from new client");
-        while (socketActive){
+        // Set up the ability to receive and send messages to the client
+        try {
+            clientIn = new ObjectInputStream(clientSocket.getInputStream());
+            clientOut = new ObjectOutputStream(clientSocket.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        while (socketActive) {
             try {
-                // Set up the ability to receive and send messages to the client
-                clientIn = new ObjectInputStream(clientSocket.getInputStream());
-                clientOut = new ObjectOutputStream(clientSocket.getOutputStream());
-                try{
-                    // Recieve message from client, this is a blocking call
-                    Message message = (Message) clientIn.readObject();
+                // Recieve message from client, this is a blocking call
+                Message message = (Message) clientIn.readObject();
 
-                    if (message != null){
-                        // Decide how to respond to message based off the special code
-                        int specialCode = message.specialCode;
-                        switch(specialCode){
-                            // Disconnect Request Received
-                            case 2:
-                                // Send request recieved message to client
-                                this.socketActive = false;
-                                serverObject.removeUser(this.userID, this.clientSocket);
-                                // Update Users
-                                sendUsers();
-                                break;
+                if (message != null) {
+                    // Decide how to respond to message based off the special code
+                    int specialCode = message.specialCode;
+                    switch (specialCode) {
+                        // Normal message received
+                        case 0:
+                            // Pass message onto correct user
+                            directMessageResponse(message);
+                            break;
 
-                            // Login Request Received
-                            case 10:
-                                LoginResponse(message);
-                                break;
-                        }
+                        // Disconnect Request Received
+                        case 2:
+                            // Send request recieved message to client
+                            this.socketActive = false;
+                            serverObject.removeUser(this.userID, this.clientSocket);
+                            // Update Users
+                            sendUsers();
+                            break;
+
+                        // Login Request Received
+                        case 10:
+                            LoginResponse(message);
+                            break;
                     }
-                } catch (ClassNotFoundException e1) {
-                    e1.printStackTrace();
                 }
-            } catch (IOException e) {
+            } catch (IOException e){
                 // The socket is closed, remove user
                 this.socketActive = false;
                 serverObject.removeUser(this.userID, this.clientSocket);
                 // Update online users
                 sendUsers();
+            } catch (ClassNotFoundException e1) {
+                e1.printStackTrace();
             }
+
         }
-        // Close input stream
+        // Close input and output stream
         try {
             clientIn.close();
+            clientOut.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -104,25 +115,45 @@ public class ServerResponse implements Runnable{
         }
     }
 
+    public void directMessageResponse(Message directMessage){
+        // Get list of online client's sockets and userID to send the message to
+        ArrayList<SocketInfo> users = this.serverObject.getClientSockets();
+        User sendToUser = directMessage.toUser;
+        SocketInfo sendToSocket = null;
+
+        // Find socket to send the message to
+        for (SocketInfo user: users){
+            if (sendToUser.uniqueID == user.clientID){
+                sendToSocket = user;
+                break;
+            }
+        }
+
+        // Send message to socket if user has been found
+        if (sendToSocket != null){
+            sendMessage(directMessage, sendToSocket);
+        }
+    }
+
     /**
      * Registers the login attempt and sends back a unique user id
      * @param message   message from client containing login attempt info
      */
     public void LoginResponse(Message message){
-        // Add username
+        // Add username and user ID
         this.name = message.message;
-
-        // Get unique user id
         this.userID = serverObject.getUserID();
+        this.userDetails = new User(userID, name);
+
         String messageContents = Integer.toString(userID);
 
         // Create socket info object
-        SocketInfo socketInfo = new SocketInfo(this.userID, this.clientSocket, this.clientOut);
+        SocketInfo socketInfo = new SocketInfo(userDetails.uniqueID, this.clientSocket, this.clientOut);
 
         // Add current user to users
         // Lock on server object to ensure that the list isn't sent by other threads before the user is added
         synchronized (serverObject){
-            serverObject.addUser(this.userID, this.name, socketInfo);
+            serverObject.addUser(this.userDetails, socketInfo);
             serverObject.notify();
         }
 
