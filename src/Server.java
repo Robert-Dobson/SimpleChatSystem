@@ -5,7 +5,7 @@ import java.util.ArrayList;
 
 public class Server {
     private int port = 34752; // Port the server is set-up on
-    private ArrayList<Socket> clientSockets = new ArrayList<Socket>(); // ArrayList of every client connected to the server
+    private ArrayList<SocketInfo> clientSockets = new ArrayList<>(); // ArrayList of every client connected to the server
 
     // List of users and their ids and a tracker for id
     private ArrayList<User> onlineUsers = new ArrayList<>();
@@ -30,7 +30,6 @@ public class Server {
                 // Accept a connection from a client, returning the clientSocket
                 // This is a blocking call. This will wait here until a client connects
                 Socket clientSocket = mySocket.accept();
-                clientSockets.add(clientSocket);
                 System.out.println("Receiving new connection request");
 
                 // Create a new serverResponse object and create a thread for it to deal with client
@@ -47,14 +46,6 @@ public class Server {
     }
 
     /**
-     * Gets the sockets of all the clients we're connected to
-     * @return an ArrayList of all clients connected to the server
-     */
-    public ArrayList<Socket> getClientSockets(){
-        return clientSockets;
-    }
-
-    /**
      * Get a new unique user id for the new user (for now just increments a counter)
      * @return  an unique user ID
      */
@@ -64,12 +55,13 @@ public class Server {
     }
 
     /**
-     * Add a new user to online users
+     * Add a new user to online users and store socket info
      * @param uniqueID  userID of the user
      * @param name  name of the user
      */
-    public void addUser(int uniqueID, String name){
+    public void addUser(int uniqueID, String name, SocketInfo clientSocketInfo){
         onlineUsers.add(new User(uniqueID, name));
+        clientSockets.add(clientSocketInfo);
     }
 
     /**
@@ -77,6 +69,13 @@ public class Server {
      */
     public ArrayList<User> getUsers(){
         return onlineUsers;
+    }
+
+    /**
+     * @return arrayList of each users id and socket
+     */
+    public ArrayList<SocketInfo> getClientSockets() {
+        return clientSockets;
     }
 
     /**
@@ -96,9 +95,14 @@ public class Server {
         }
 
         // Remove client socket from list
-        this.clientSockets.remove(clientSocket);
-        
-        System.out.println("User ID "+ Integer.toString(uniqueID) + " (" + name +") has disconnected");
+        for (SocketInfo socket: this.clientSockets){
+            if (socket.clientSocket == clientSocket){
+                this.clientSockets.remove(socket);
+                break;
+            }
+        }
+
+        System.out.println("User ID "+ Integer.toString(uniqueID) + " (" + name + ") has disconnected");
     }
 
     public static void main(String[] args) {

@@ -1,4 +1,5 @@
 import java.io.*;
+import java.lang.reflect.Array;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -7,7 +8,7 @@ public class ServerResponse implements Runnable{
     // Socket attributes
     private ServerSocket mySocket;
     private Socket clientSocket;
-    private Server serverObject;
+    private final Server serverObject;
     private Boolean socketActive = true;
 
     // Streams to and from client
@@ -56,6 +57,8 @@ public class ServerResponse implements Runnable{
                                 // Send request recieved message to client
                                 this.socketActive = false;
                                 serverObject.removeUser(this.userID, this.clientSocket);
+                                // Update Users
+                                sendUsers();
                                 break;
 
                             // Login Request Received
@@ -71,21 +74,33 @@ public class ServerResponse implements Runnable{
                 // The socket is closed, remove user
                 this.socketActive = false;
                 serverObject.removeUser(this.userID, this.clientSocket);
+                // Update online users
+                sendUsers();
             }
+        }
+        // Close input stream
+        try {
+            clientIn.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     /**
-     * Send a message back to the client
+     * Send a message to the requested client
      * @param requestReply  message to send to client
+     * @param sendSocket socket in which to send the message to
      */
-    public void sendMessage(Message requestReply){
-        try {
+    public void sendMessage(Message requestReply, SocketInfo sendSocket){
+        try{
+            // Get output stream from socket Info
+            ObjectOutputStream sendOut = sendSocket.outputStream;
             // Send message to the client using the output stream
-            clientOut.writeObject(requestReply);
-            clientOut.flush();
+            sendOut.writeObject(requestReply);
+            sendOut.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+           // Socket Closed
+            System.out.println("Failed to send");
         }
     }
 
@@ -98,30 +113,53 @@ public class ServerResponse implements Runnable{
         this.name = message.message;
 
         // Get unique user id
-        userID = serverObject.getUserID();
+        this.userID = serverObject.getUserID();
         String messageContents = Integer.toString(userID);
+
+        // Create socket info object
+        SocketInfo socketInfo = new SocketInfo(this.userID, this.clientSocket, this.clientOut);
+
+        // Add current user to users
+        // Lock on server object to ensure that the list isn't sent by other threads before the user is added
+        synchronized (serverObject){
+            serverObject.addUser(this.userID, this.name, socketInfo);
+            serverObject.notify();
+        }
 
         // Create and send response message to user
         Message requestReply = new Message(11, messageContents);
-        sendMessage(requestReply);
-
-        // Add current user to users
-        serverObject.addUser(userID, name);
-
-        // Send list of connected users to Client
-        sendUsers();
+        sendMessage(requestReply, socketInfo);
 
         // Add to log
         System.out.println("New User (ID: "+ this.userID  + ", Name:" + this.name + ")");
+
+        // Send list of connected users to Client
+        sendUsers();
     }
 
     /**
-     * Send list of currently online users to the client
+     * Send list of currently online users to all clients
      */
     public void sendUsers(){
-        // Get array list of users and send
-        ArrayList<User> users = serverObject.getUsers();
-        Message requestReply = new Message(users);
-        sendMessage(requestReply);
+        // Get array list of users and send to every user
+        // Lock on server object to ensure that the list isn't sent by other threads before the user is added
+        ArrayList<User> users;
+        ArrayList<SocketInfo> sockets;
+        synchronized (serverObject){
+            users = serverObject.getUsers();
+            sockets = serverObject.getClientSockets();
+            serverObject.notify();
+        }
+
+        // Create shallow copy of users to fix bug where clients keep their old version of this array
+        ArrayList<User> newUsers = new ArrayList<User>();
+        newUsers.addAll(users);
+
+        Message requestReply = new Message(newUsers);
+        for (SocketInfo socket: sockets){
+            if (socket != null){
+                sendMessage(requestReply, socket);
+            }
+        }
     }
 }
