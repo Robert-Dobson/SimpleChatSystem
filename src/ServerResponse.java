@@ -1,5 +1,4 @@
 import java.io.*;
-import java.lang.reflect.Array;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -49,7 +48,7 @@ public class ServerResponse implements Runnable{
         }
         while (socketActive) {
             try {
-                // Recieve message from client, this is a blocking call
+                // Receive message from client, this is a blocking call
                 Message message = (Message) clientIn.readObject();
 
                 if (message != null) {
@@ -64,7 +63,7 @@ public class ServerResponse implements Runnable{
 
                         // Disconnect Request Received
                         case 2:
-                            // Send request recieved message to client
+                            // Send request received message to client
                             this.socketActive = false;
                             serverObject.removeUser(this.userID, this.clientSocket);
                             // Update Users

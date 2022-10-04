@@ -220,6 +220,7 @@ public class Client{
 
     /**
      * Disconnects from the ssh session, deleting the local port forwarding
+     * Also remove all messages saved on the computer
      */
     public void Disconnect() {
         // Disconnect port forwarding
@@ -237,11 +238,20 @@ public class Client{
                 session.disconnect();
                 session.delPortForwardingL(port);
             }
-            System.out.println("Disconnect"); //Remove
 
         } catch (JSchException | IOException e) {
             // Session already deleted, don't need to do anything
             ;
+        }
+
+        // Remove all message files (to avoid issues rerunning the program
+        File messageDirectory = new File(System.getProperty("user.dir") + "/Data/");
+        if (messageDirectory.isDirectory()){
+            for (File f: messageDirectory.listFiles()){
+                if (f.getName().endsWith("messages.txt") && f.getName().startsWith(Integer.toString(userID))){
+                    f.delete();
+                }
+            }
         }
 
         // Exit program

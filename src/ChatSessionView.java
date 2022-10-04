@@ -128,7 +128,7 @@ public class ChatSessionView implements ActionListener {
     }
 
     /**
-     * Updates the drop down menu with all online users
+     * Updates the drop-down menu with all online users
      * @param users list of currently online users
      */
     public void updateOnlineUsers(ArrayList<User> users){
@@ -193,7 +193,7 @@ public class ChatSessionView implements ActionListener {
      * @param userID
      */
     public void refreshText(int userID){
-        // Currently selected user
+        // The currently selected user
         User selectedUser = (User) this.selectUser.getSelectedItem();
 
         // If currently selected user is user to update reload file
