@@ -2,14 +2,18 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;
 
+/**
+ * Repeatedly checks for messages from the server and executes the relevant Client object method. This is run as a
+ * thread so the blocking calls when waiting for a message doesn't freeze the program.
+ */
 public class ClientListener implements Runnable{
-    private Socket serverSocket;
-    private Client clientObject;
+    private final Socket serverSocket;
+    private final Client clientObject;
 
     /**
      * Constructor to create ClientListener object
-     * @param serverSocket
-     * @param clientObject
+     * @param serverSocket  the socket that's connected to the server
+     * @param clientObject  instance of client that started this thread
      */
     public ClientListener(Socket serverSocket, Client clientObject){
         this.serverSocket = serverSocket;
@@ -35,7 +39,7 @@ public class ClientListener implements Runnable{
                     }
                     else {
                         // Decides how to respond to message based off special code
-                        int specialCode = serverMessage.specialCode;
+                        int specialCode = serverMessage.getSpecialCode();
                         switch(specialCode){
                             // Direct message received
                             case 0:
@@ -44,16 +48,16 @@ public class ClientListener implements Runnable{
 
                             // Login Request Accepted/Rejected
                             case 11:
-                                clientObject.loginRecieved(serverMessage.message);
+                                clientObject.loginReceived(serverMessage.getMessage());
                                 break;
                             // Refresh Users
                             case 20:
-                                clientObject.updateUsers(serverMessage.users);
+                                clientObject.updateUsers(serverMessage.getUsers());
                                 break;
                         }
                     }
                 } catch (IOException | ClassNotFoundException e1) {
-                    ;
+                    e1.printStackTrace();
                 }
             }
         } catch (IOException e) {
