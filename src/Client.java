@@ -43,13 +43,15 @@ public class Client{
      * Commence connection to the server of the chat system and setup and start the GUI
      */
     public void startClient(){
+        // Draw GUI
+        GUI = new ChatSessionView(this);
+        GUI.draw();
+
         // Port forward to linux bath server then connect to server and start listening for responses
         this.portForward();
         this.startListening();
 
-        // Draw GUI and start login dialog
-        GUI = new ChatSessionView(this);
-        GUI.draw();
+        // Start login dialog
         GUI.runLoginDialog();
     }
 
@@ -77,7 +79,7 @@ public class Client{
                 userID = Integer.parseInt(message);
             }
             catch (NumberFormatException ex){
-                ex.printStackTrace();
+                GUI.showErrorDialog("Invalid UserID given, please contact server owner");
             }
         }
 
@@ -105,7 +107,7 @@ public class Client{
                     try {
                         userFile.createNewFile();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        GUI.showErrorDialog("Failed to create file. Please check file permissions");
                     }
                 }
 
@@ -123,7 +125,7 @@ public class Client{
                     bw.newLine();
                 }
                 catch(IOException ex){
-                    ex.printStackTrace();
+                    GUI.showErrorDialog("Failed to write message to file. Please check file permissions");
                 }
 
                 // Ask chat session view to refresh
@@ -169,7 +171,7 @@ public class Client{
         // Disconnect port forwarding
         try {
             // If socket isn't already closed
-            if (serverSocket.isConnected()){
+            if (serverSocket !=null && serverSocket.isConnected()){
                 // Inform server of disconnect
                 Message disconnectRequest = new Message(2, Integer.toString(this.userID));
                 sendMessage(disconnectRequest);
@@ -212,6 +214,14 @@ public class Client{
     }
 
     /**
+     * Returns the GUI object handling the GUI
+     * @return  GUI object
+     */
+    public ChatSessionView getGUI(){
+        return this.GUI;
+    }
+
+    /**
      * This sets up ssh local port forwarding to redirect any traffic sent to localhost port 14002 to linux3.bath.ac.uk
      * port 34752
      */
@@ -238,7 +248,7 @@ public class Client{
                 }
             }
         } catch (JSchException e) {
-            e.printStackTrace();
+            GUI.showErrorDialog("Failed to connect to Linux Server. Please use Bath Uni's VPN");
         }
 
     }
@@ -260,7 +270,7 @@ public class Client{
             // Create an output object stream to write messages to the server
             this.outStream = new ObjectOutputStream(serverSocket.getOutputStream());
         } catch (IOException e) {
-            e.printStackTrace();
+            GUI.showErrorDialog("Unable to communicate with server application. Is the server online?");
         }
     }
 
@@ -270,12 +280,17 @@ public class Client{
      */
     private void sendMessage(Message message){
         try{
-            // Send message to the server using the output object stream
-            outStream.writeObject(message);
-            outStream.flush();
+            if (outStream !=null){
+                // Send message to the server using the output object stream
+                outStream.writeObject(message);
+                outStream.flush();
+            }
+            else{
+                GUI.showErrorDialog("Output stream is null. Please restart app");
+            }
         }
         catch (IOException e){
-            e.printStackTrace();
+            GUI.showErrorDialog("Message failed to send, please try again");
         }
     }
 

@@ -137,6 +137,14 @@ public class ChatSessionView implements ActionListener {
     }
 
     /**
+     * Displays an error dialog containing the passed message
+     * @param errorMessage  error message to show the user
+     */
+    public void showErrorDialog(String errorMessage){
+        JOptionPane.showMessageDialog(mainFrame, errorMessage, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    /**
      * Updates the drop-down menu with all online users
      * @param users list of currently online users
      */

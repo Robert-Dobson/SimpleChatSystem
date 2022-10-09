@@ -9,6 +9,7 @@ import java.net.Socket;
 public class ClientListener implements Runnable{
     private final Socket serverSocket;
     private final Client clientObject;
+    private final ChatSessionView GUI;
 
     /**
      * Constructor to create ClientListener object
@@ -18,6 +19,7 @@ public class ClientListener implements Runnable{
     public ClientListener(Socket serverSocket, Client clientObject){
         this.serverSocket = serverSocket;
         this.clientObject = clientObject;
+        this.GUI = clientObject.getGUI();
     }
 
     /**
@@ -35,7 +37,7 @@ public class ClientListener implements Runnable{
                 try {
                     Message serverMessage = (Message)in.readObject();
                     if (serverMessage == null){
-                        throw new IOException();
+                        GUI.showErrorDialog("Received invalid message from server. Please report to server owner");
                     }
                     else {
                         // Decides how to respond to message based off special code
@@ -56,12 +58,14 @@ public class ClientListener implements Runnable{
                                 break;
                         }
                     }
-                } catch (IOException | ClassNotFoundException e1) {
-                    e1.printStackTrace();
+                } catch (IOException e) {
+                    GUI.showErrorDialog("Error reading message from server. Please restart your app");
+                } catch (ClassNotFoundException e) {
+                    GUI.showErrorDialog("Message class is missing, please check installation");
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            GUI.showErrorDialog("Failed to open stream. Please check if server is still up");
         }
     }
 }
